@@ -168,12 +168,54 @@ function reply(status, body) {
   };
 }
 
+// Debug: shows what the FRI site actually sent back to this server.
+// Open /.netlify/functions/timetable?student=63240310&debug=1
+async function debugInfo(student, semesterParam) {
+  const info = {};
+  try {
+    const front = await download(SITE + "/");
+    info.frontPageFinalUrl = front.finalUrl;
+    const semester = /^[\w-]+$/.test(semesterParam || "") ? semesterParam : await currentSemester();
+    info.semester = semester;
+
+    const url = `${SITE}/timetable/${semester}/allocations?student=${student}`;
+
+    // without following redirects: is the site sending us somewhere else?
+    const raw = await fetch(url, { headers: HEADERS, redirect: "manual" });
+    info.firstResponse = {
+      status: raw.status,
+      location: raw.headers.get("location"),
+      setsCookie: raw.headers.has("set-cookie"),
+    };
+
+    // normal request: what page do we end up with?
+    const page = await download(url);
+    const $ = cheerio.load(page.html);
+    info.page = {
+      finalUrl: page.finalUrl,
+      length: page.html.length,
+      title: $("title").text().trim(),
+      heading: $(".title").first().text().trim(),
+      gridEntries: $("div.grid-entry").length,
+      parsedBlocks: parseBlocks(page.html).length,
+      start: page.html.slice(0, 600),
+    };
+  } catch (err) {
+    info.error = String(err);
+  }
+  return info;
+}
+
 exports.handler = async (event) => {
   const params = event.queryStringParameters || {};
   const student = (params.student || "").trim();
 
   if (!/^\d{8}$/.test(student)) {
     return reply(400, { error: "Vpisna številka mora imeti 8 števk." });
+  }
+
+  if (params.debug === "1") {
+    return reply(200, await debugInfo(student, params.semester));
   }
 
   try {
