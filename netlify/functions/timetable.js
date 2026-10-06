@@ -176,7 +176,7 @@ async function buildTimetable(student, semester) {
     student: student,
     semester: semester,
     program: program,
-    fetched_at: new Date().toISOString().slice(0, 16),
+    fetched_at: new Date().toLocaleString("sv-SE", { timeZone: "Europe/Ljubljana" }).slice(0, 16),
     subjects: subjects,
     lectures: lectures,
     labs: labs,
