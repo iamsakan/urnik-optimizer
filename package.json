@@ -1,6 +1,14 @@
 {
   "name": "urnik-optimizer",
+  "version": "1.0.0",
+  "description": "Finds the best non-overlapping combination of lab groups for an FRI timetable",
   "private": true,
+  "license": "MIT",
+  "author": "iamsakan",
+  "repository": "github:iamsakan/urnik-optimizer",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "test": "node test.js && node test-function.js"
   },
