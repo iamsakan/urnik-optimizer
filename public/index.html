@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Urnik Optimizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: settings column on the left, results (tabs, stats, week grid, what-to-request list) on the right. */
+:root {
+  --bg: #eef2f5;
+  --surface: #ffffff;
+  --ink: #16212b;
+  --muted: #5b6977;
+  --line: #d8e0e7;
+  --accent: #0e7a6b;
+  --accent-ink: #ffffff;
+  --warn: #b0431a;
+  --warn-bg: #fbe9e1;
+  --s0: #9fd4c9; --s1: #f2c88f; --s2: #b9c6f2; --s3: #f0a9b4;
+  --s4: #c9dd94; --s5: #d4b6ec; --s6: #9fd0ee; --s7: #e9d39b;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --hour: 46px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1418; --surface: #161e24; --ink: #e4ebf0; --muted: #91a0ac; --line: #28333c;
+    --accent: #3fc3ab; --accent-ink: #06201b; --warn: #ff8f63; --warn-bg: #3a1f15;
+    --s0: #1f5a50; --s1: #6a4d22; --s2: #34407a; --s3: #6e2f3b;
+    --s4: #4b5c1f; --s5: #533a6f; --s6: #1f5070; --s7: #625224;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1418; --surface: #161e24; --ink: #e4ebf0; --muted: #91a0ac; --line: #28333c;
+  --accent: #3fc3ab; --accent-ink: #06201b; --warn: #ff8f63; --warn-bg: #3a1f15;
+  --s0: #1f5a50; --s1: #6a4d22; --s2: #34407a; --s3: #6e2f3b;
+  --s4: #4b5c1f; --s5: #533a6f; --s6: #1f5070; --s7: #625224;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 var(--font-body);
+}
+.app { max-width: 1240px; margin: 0 auto; padding: 24px 16px 48px; display: flex; flex-direction: column; gap: 20px; }
+
+/* Header */
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 24px; }
+h1 { font: 800 clamp(28px, 4vw, 40px)/1 var(--font-display); letter-spacing: -0.02em; margin: 0; }
+h1 span { color: var(--accent); }
+.meta { font: 13px/1.4 var(--font-mono); color: var(--muted); }
+.warning {
+  background: var(--warn-bg); color: var(--warn); border-radius: 10px;
+  padding: 10px 14px; font-weight: 700;
+}
+.warning small { display: block; font-weight: 400; color: var(--ink); }
+
+/* Two columns */
+.layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+.panel {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 18px; display: flex; flex-direction: column; gap: 22px;
+}
+.panel h2 {
+  font: 600 12px/1 var(--font-body); text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted); margin: 0 0 10px;
+}
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.field label { font-size: 14px; display: flex; justify-content: space-between; gap: 8px; }
+.field label output { font-family: var(--font-mono); color: var(--muted); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+select, input[type="range"] { width: 100%; accent-color: var(--accent); }
+select {
+  font: 14px var(--font-body); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px;
+}
+.check { display: flex; gap: 10px; align-items: start; font-size: 14px; cursor: pointer; }
+.check input { margin-top: 4px; accent-color: var(--accent); }
+.lock { margin-bottom: 12px; }
+.lock .name { font-size: 14px; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Results */
+main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.count { font-size: 14px; color: var(--muted); margin: 0; }
+.count b { color: var(--ink); }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab {
+  font: 600 14px var(--font-body); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer;
+}
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+.stats { display: flex; flex-wrap: wrap; gap: 8px 28px; }
+.stat { display: flex; flex-direction: column; }
+.stat b { font: 800 26px/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+
+/* Week grid */
+.grid-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+.week { display: grid; grid-template-columns: 44px repeat(5, minmax(96px, 1fr)); min-width: 560px; }
+.day-head { font: 600 13px var(--font-body); text-align: center; padding-bottom: 8px; color: var(--muted); }
+.hours { position: relative; }
+.hour-label {
+  position: absolute; right: 8px; font: 11px var(--font-mono); color: var(--muted);
+  transform: translateY(-50%);
+}
+.day {
+  position: relative; border-left: 1px solid var(--line);
+  background-image: linear-gradient(var(--line) 1px, transparent 1px);
+  background-size: 100% var(--hour);
+}
+.block {
+  position: absolute; border-radius: 7px; padding: 4px 6px; overflow: hidden;
+  font-size: 12px; line-height: 1.25; color: var(--ink);
+  border: 1px solid var(--surface);
+}
+.block .abbr { font-weight: 700; font-size: 13px; }
+.block .time { font-family: var(--font-mono); font-size: 11px; }
+.block.lecture { border: 1.5px dashed var(--muted); }
+.block.clash { border: 2px solid var(--warn); }
+.badge {
+  display: inline-block; font: 600 10px/1 var(--font-body); text-transform: uppercase; letter-spacing: 0.05em;
+  background: var(--accent); color: var(--accent-ink); border-radius: 4px; padding: 2px 4px; margin-left: 4px;
+}
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 16px; height: 12px; border-radius: 3px; background: var(--s2); }
+.sw.lec { background: color-mix(in srgb, var(--s2) 45%, var(--surface)); border: 1.5px dashed var(--muted); }
+
+/* What to request */
+.changes { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+.changes h2 { font: 600 18px var(--font-display); margin: 0 0 10px; }
+.changes ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.changes li { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.status { font: 600 12px var(--font-body); text-transform: uppercase; letter-spacing: 0.06em; }
+.status.keep { color: var(--muted); }
+.status.swap, .status.add { color: var(--accent); }
+.codes { font: 12px var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; padding: 28px; }
+.empty h2 { font: 600 20px var(--font-display); margin: 0 0 6px; }
+.empty p { margin: 0 0 12px; max-width: 60ch; }
+.empty.error h2 { color: var(--warn); }
+
+/* Student ID form */
+.search { display: flex; flex-direction: column; gap: 4px; }
+.search label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.search-row { display: flex; gap: 6px; }
+.search input {
+  font: 16px var(--font-mono); width: 11ch; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+}
+button.primary, .search button {
+  font: 600 14px var(--font-body); background: var(--accent); color: var(--accent-ink);
+  border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer;
+}
+.search button:disabled { opacity: 0.6; cursor: wait; }
+button.link {
+  font: inherit; color: var(--accent); background: none; border: 0; padding: 0;
+  text-decoration: underline; cursor: pointer;
+}
+footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>Urnik <span>Optimizer</span></h1>
+      <div class="meta" id="meta">Najboljša kombinacija vaj za tvoj FRI urnik</div>
+    </div>
+    <form class="search" id="search">
+      <label for="studentId">Vpisna številka</label>
+      <div class="search-row">
+        <input id="studentId" inputmode="numeric" maxlength="8" placeholder="63240310" autocomplete="off" required>
+        <button type="submit" id="loadBtn">Naloži urnik</button>
+      </div>
+    </form>
+  </header>
+  <div id="warnings"></div>
+
+  <div class="layout">
+    <aside class="panel">
+      <section>
+        <h2>Kaj ti je pomembno</h2>
+        <div class="row2">
+          <div class="field">
+            <label for="earliest">Ne pred</label>
+            <select id="earliest"></select>
+          </div>
+          <div class="field">
+            <label for="latest">Ne po</label>
+            <select id="latest"></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="freeDayWeight">Prosti dnevi <output id="freeDayOut"></output></label>
+          <input type="range" id="freeDayWeight" min="0" max="60" step="5">
+        </div>
+        <div class="field">
+          <label for="gapWeight">Brez lukenj <output id="gapOut"></output></label>
+          <input type="range" id="gapWeight" min="0" max="60" step="5">
+        </div>
+        <div class="field">
+          <label for="timeWeight">Znotraj ur <output id="timeOut"></output></label>
+          <input type="range" id="timeWeight" min="0" max="60" step="5">
+        </div>
+        <label class="check" for="overlapLectures">
+          <input type="checkbox" id="overlapLectures">
+          <span>Vaje lahko prekrivajo predavanja (če predavanja niso obvezna)</span>
+        </label>
+      </section>
+      <section>
+        <h2>Vaje</h2>
+        <div id="locks"></div>
+      </section>
+    </aside>
+
+    <main id="results"></main>
+  </div>
+
+  <footer>
+    Podatki se naložijo z urnik.fri.uni-lj.si ob vsakem iskanju. Vpisnih številk ne shranjujemo.
+    Skupine za vaje dodeli fakulteta, zato je to orodje za načrtovanje: pove ti, katere skupine zaprositi.
+  </footer>
+</div>
+
+<script src="solver.js"></script>
+<script>
+let data = null;           // the loaded timetable (same format as timetable.json)
+const prefs = Object.assign({}, DEFAULT_PREFS);
+let locks = {};            // { "63735 LV": optionIndex }
+let shown = 0;             // which tab: -1 = current schedule, 0..4 = best results
+let result = null;
+
+const FIRST_HOUR = 7;
+const LAST_HOUR = 20;
+const SHORT_DAYS = ["Pon", "Tor", "Sre", "Čet", "Pet"];
+let subjectCodes = [];
+
+// ---------- small helpers ----------
+function color(code) {
+  return "var(--s" + (subjectCodes.indexOf(code) % 8) + ")";
+}
+function abbr(name) {
+  // "Tehnologija programske opreme" -> "TPO", skipping short words like "in"
+  // "Razvoj in operacije - DevOps" -> "DevOps"
+  if (name.includes(" - ")) return name.split(" - ").pop();
+  return name.split(/\s+/).filter((w) => w.length > 2 && /^\p{L}/u.test(w))
+    .map((w) => w[0].toUpperCase()).join("");
+}
+function slotText(b) {
+  return `${SHORT_DAYS[b.day]} ${b.start}–${b.end} · ${b.room}`;
+}
+function sameSlot(a, b) {
+  return a && b && a.subject === b.subject && a.type === b.type && a.day === b.day && a.start === b.start;
+}
+function myGroups(b) {
+  const mine = b.groups.filter((g) => g.startsWith(data.program));
+  return (mine.length ? mine : b.groups).join(", ");
+}
+function el(tag, attrs, children) {
+  const node = document.createElement(tag);
+  Object.assign(node, attrs || {});
+  for (const child of children || []) node.append(child);
+  return node;
+}
+
+// ---------- settings panel ----------
+function setupControls() {
+  const earliest = document.getElementById("earliest");
+  const latest = document.getElementById("latest");
+  for (let h = 7; h <= 12; h++) earliest.append(new Option(h + ":00", h));
+  for (let h = 13; h <= 20; h++) latest.append(new Option(h + ":00", h));
+  earliest.value = prefs.earliest;
+  latest.value = prefs.latest;
+  earliest.onchange = () => { prefs.earliest = Number(earliest.value); run(); };
+  latest.onchange = () => { prefs.latest = Number(latest.value); run(); };
+
+  const sliders = [
+    ["freeDayWeight", "freeDayOut", (v) => { prefs.freeDayWeight = v; }, prefs.freeDayWeight],
+    ["gapWeight", "gapOut", (v) => { prefs.gapWeight = v; }, prefs.gapWeight],
+    ["timeWeight", "timeOut", (v) => { prefs.earlyWeight = v; prefs.lateWeight = v; }, prefs.earlyWeight],
+  ];
+  for (const [id, outId, apply, start] of sliders) {
+    const input = document.getElementById(id);
+    const out = document.getElementById(outId);
+    input.value = start;
+    out.textContent = start;
+    input.oninput = () => { out.textContent = input.value; apply(Number(input.value)); run(); };
+  }
+
+  const overlap = document.getElementById("overlapLectures");
+  overlap.checked = prefs.labsCanOverlapLectures;
+  overlap.onchange = () => { prefs.labsCanOverlapLectures = overlap.checked; run(); };
+}
+
+function renderLocks() {
+  const box = document.getElementById("locks");
+  box.innerHTML = "";
+  for (const choice of result.choices) {
+    const select = el("select", { id: "lock-" + choice.key.replace(" ", "-") });
+    select.append(new Option(`Katerikoli (${choice.options.length})`, ""));
+    choice.options.forEach((opt, i) => {
+      select.append(new Option(slotText(opt) + (opt.current ? " (zdaj)" : ""), i));
+    });
+    select.value = locks[choice.key] !== undefined ? locks[choice.key] : "";
+    select.onchange = () => {
+      if (select.value === "") delete locks[choice.key];
+      else locks[choice.key] = Number(select.value);
+      run();
+    };
+    const dot = el("span", { className: "dot" });
+    dot.style.background = color(choice.subject);
+    box.append(el("div", { className: "lock" }, [
+      el("div", { className: "name", title: choice.name }, [dot, `${abbr(choice.name)} ${choice.type}`]),
+      select,
+    ]));
+  }
+}
+
+// ---------- results ----------
+function renderWarnings() {
+  const box = document.getElementById("warnings");
+  box.innerHTML = "";
+  for (const [a, b] of result.lectureClashes) {
+    box.append(el("div", { className: "warning" }, [
+      `Predavanji se prekrivata: ${abbr(a.name)} in ${abbr(b.name)}, ${SHORT_DAYS[a.day]} ${Math.max(a.start, b.start)}–${Math.min(a.end, b.end)}`,
+      el("small", { textContent: "Tega ni mogoče rešiti z izbiro vaj. Izbrati boš moral, katero predavanje obiskuješ." }),
+    ]));
+  }
+}
+
+function renderResults() {
+  const main = document.getElementById("results");
+  main.innerHTML = "";
+
+  if (result.count === 0) {
+    main.append(el("div", { className: "empty" }, [
+      el("h2", { textContent: "Ni urnika brez prekrivanj" }),
+      el("p", { textContent: "S temi izbirami se vaje vedno prekrivajo. Sprosti kakšno zaklenjeno vajo ali dovoli, da vaje prekrivajo predavanja." }),
+    ]));
+    shown = -1;
+  }
+
+  main.append(el("p", { className: "count" }, [
+    "Kombinacij brez prekrivanj: ", el("b", { textContent: result.count }),
+  ]));
+
+  if (shown >= result.top.length) shown = result.top.length ? 0 : -1;
+
+  // tabs
+  const tabs = el("div", { className: "tabs", role: "tablist" });
+  const addTab = (label, index) => {
+    const tab = el("button", { className: "tab", textContent: label, type: "button" });
+    tab.setAttribute("role", "tab");
+    tab.setAttribute("aria-selected", shown === index);
+    tab.onclick = () => { shown = index; renderResults(); };
+    tabs.append(tab);
+  };
+  addTab("Trenutni urnik", -1);
+  result.top.forEach((r, i) => addTab("#" + (i + 1), i));
+  main.append(tabs);
+
+  const schedule = shown === -1 ? result.current : result.top[shown];
+
+  // stats
+  const totalChoices = result.choices.length;
+  const stats = [
+    [schedule.score, "točke"],
+    [schedule.freeDays, "prosti dnevi"],
+    [schedule.gaps + " h", "luknje"],
+    [schedule.early + schedule.late + " h", "izven ur"],
+    [`${schedule.labs.length}/${totalChoices}`, "vaje"],
+  ];
+  main.append(el("div", { className: "stats" },
+    stats.map(([v, label]) => el("div", { className: "stat" }, [el("b", { textContent: v }), el("span", { textContent: label })]))));
+
+  main.append(renderWeek(schedule));
+  main.append(el("div", { className: "legend" }, [
+    el("span", {}, [el("i", { className: "sw lec" }), "predavanje"]),
+    el("span", {}, [el("i", { className: "sw" }), "vaje"]),
+    el("span", {}, [el("b", { className: "badge", textContent: "nova" }), "druga skupina kot zdaj"]),
+  ]));
+
+  if (shown !== -1) main.append(renderChanges(schedule));
+}
+
+function renderWeek(schedule) {
+  const wrap = el("div", { className: "grid-wrap" });
+  const week = el("div", { className: "week" });
+  const height = (LAST_HOUR - FIRST_HOUR) * 46;
+
+  week.append(el("div"));
+  SHORT_DAYS.forEach((d) => week.append(el("div", { className: "day-head", textContent: d })));
+
+  const hours = el("div", { className: "hours" });
+  hours.style.height = height + "px";
+  for (let h = FIRST_HOUR; h <= LAST_HOUR; h++) {
+    const label = el("div", { className: "hour-label", textContent: h + ":00" });
+    label.style.top = (h - FIRST_HOUR) * 46 + "px";
+    hours.append(label);
+  }
+  week.append(hours);
+
+  const clashing = new Set(result.lectureClashes.flat());
+  const blocks = data.lectures.concat(schedule.labs);
+
+  for (let day = 0; day < 5; day++) {
+    const column = el("div", { className: "day" });
+    column.style.height = height + "px";
+    const today = blocks.filter((b) => b.day === day).sort((a, b) => a.start - b.start);
+
+    // put overlapping blocks side by side ("lanes")
+    const laneEnds = [];
+    const lanes = today.map((b) => {
+      let lane = laneEnds.findIndex((end) => end <= b.start);
+      if (lane === -1) { lane = laneEnds.length; laneEnds.push(0); }
+      laneEnds[lane] = b.end;
+      return lane;
+    });
+    const laneCount = Math.max(1, laneEnds.length);
+
+    today.forEach((b, i) => {
+      const isLecture = b.type === "P";
+      const isNew = !isLecture && shown !== -1 && !b.current;
+      const block = el("div", {
+        className: "block" + (isLecture ? " lecture" : "") + (clashing.has(b) ? " clash" : ""),
+        title: `${b.name} (${b.type})\n${slotText(b)}\n${b.teachers.join(", ")}\n${myGroups(b)}`,
+      });
+      block.style.top = (b.start - FIRST_HOUR) * 46 + 1 + "px";
+      block.style.height = (b.end - b.start) * 46 - 2 + "px";
+      block.style.left = (lanes[i] * 100) / laneCount + "%";
+      block.style.width = 100 / laneCount + "%";
+      block.style.background = isLecture
+        ? `color-mix(in srgb, ${color(b.subject)} 45%, var(--surface))`
+        : color(b.subject);
+      const head = el("div", { className: "abbr" }, [`${abbr(b.name)} ${b.type}`]);
+      if (isNew) head.append(el("span", { className: "badge", textContent: "nova" }));
+      block.append(head,
+        el("div", { className: "time", textContent: `${b.start}–${b.end}` }),
+        el("div", { textContent: b.room }));
+      column.append(block);
+    });
+    week.append(column);
+  }
+
+  wrap.append(week);
+  return wrap;
+}
+
+function renderChanges(schedule) {
+  const box = el("div", { className: "changes" }, [el("h2", { textContent: "Kaj moraš urediti" })]);
+  const list = el("ul");
+  for (const choice of result.choices) {
+    const picked = schedule.labs.find((l) => l.subject === choice.subject && l.type === choice.type);
+    const now = data.labs.find((l) => l.current && l.subject === choice.subject && l.type === choice.type);
+    let status, text;
+    if (sameSlot(picked, now)) {
+      status = ["keep", "Ostane"];
+      text = `${abbr(choice.name)} ${choice.type}: ${slotText(picked)}`;
+    } else if (now) {
+      status = ["swap", "Zamenjaj"];
+      text = `${abbr(choice.name)} ${choice.type}: ${slotText(now)} → ${slotText(picked)}`;
+    } else {
+      status = ["add", "Vpiši se"];
+      text = `${abbr(choice.name)} ${choice.type}: ${slotText(picked)}`;
+    }
+    const codes = status[0] === "keep" ? "" : "Skupine: " + myGroups(picked);
+    list.append(el("li", {}, [
+      el("span", { className: "status " + status[0], textContent: status[1] }),
+      el("div", {}, [el("div", { textContent: text }), el("div", { className: "codes", textContent: codes })]),
+    ]));
+  }
+  box.append(list);
+  return box;
+}
+
+function run() {
+  if (!data) return; // nothing loaded yet
+  result = solve(data, prefs, locks);
+  renderWarnings();
+  renderLocks();
+  renderResults();
+}
+
+// ---------- loading a student's timetable ----------
+function showMessage(title, text, isError) {
+  const main = document.getElementById("results");
+  main.innerHTML = "";
+  const box = el("div", { className: "empty" + (isError ? " error" : "") }, [
+    el("h2", { textContent: title }),
+    el("p", { textContent: text }),
+  ]);
+  if (!data) {
+    const example = el("button", { type: "button", className: "link", textContent: "Poglej primer urnika" });
+    example.onclick = () => loadFrom("timetable.json");
+    box.append(example);
+  }
+  main.append(box);
+}
+
+function useTimetable(json) {
+  data = json;
+  subjectCodes = Object.keys(data.subjects);
+  locks = {};
+  shown = 0;
+  document.getElementById("meta").textContent =
+    `Študent ${data.student} · ${data.program} · ${data.semester} · podatki: ${data.fetched_at.replace("T", " ")}`;
+  run();
+}
+
+async function loadFrom(url) {
+  const button = document.getElementById("loadBtn");
+  button.disabled = true;
+  showMessage("Nalagam urnik …", "Prenašam tvoj urnik in vse termine vaj s strani urnik.fri.uni-lj.si.");
+  try {
+    const response = await fetch(url);
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.error || "Napaka pri nalaganju.");
+    useTimetable(json);
+  } catch (err) {
+    data = null;
+    document.getElementById("warnings").innerHTML = "";
+    document.getElementById("locks").innerHTML = "";
+    showMessage("Urnika ni bilo mogoče naložiti", err.message, true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function loadStudent(id) {
+  // shareable link: ...?student=63240310
+  history.replaceState(null, "", "?student=" + id);
+  try { localStorage.setItem("lastStudent", id); } catch (e) { /* storage blocked, that's fine */ }
+  loadFrom("/.netlify/functions/timetable?student=" + encodeURIComponent(id));
+}
+
+document.getElementById("search").onsubmit = (event) => {
+  event.preventDefault();
+  const id = document.getElementById("studentId").value.trim();
+  if (!/^\d{8}$/.test(id)) {
+    showMessage("Preveri vpisno številko", "Vpisna številka ima 8 števk, na primer 63240310.", true);
+    return;
+  }
+  loadStudent(id);
+};
+
+setupControls();
+
+// Start: ID from the link, otherwise the last one used, otherwise a short intro
+const fromLink = new URLSearchParams(location.search).get("student");
+let remembered = null;
+try { remembered = localStorage.getItem("lastStudent"); } catch (e) { /* ignore */ }
+
+if (fromLink && /^\d{8}$/.test(fromLink)) {
+  document.getElementById("studentId").value = fromLink;
+  loadStudent(fromLink);
+} else {
+  if (remembered) document.getElementById("studentId").value = remembered;
+  showMessage(
+    "Vpiši vpisno številko",
+    "Orodje prenese tvoj urnik, poišče vse kombinacije vaj brez prekrivanj in jih razvrsti po tvojih željah: prosti dnevi, brez lukenj, ne prezgodaj in ne prepozno."
+  );
+}
+</script>
+</body>
+</html>

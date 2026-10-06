@@ -1,0 +1,442 @@
+{
+  "student": "63240310",
+  "semester": "fri-2026_2027-zimski",
+  "program": "3_BVS-RI",
+  "fetched_at": "2026-10-06T22:20",
+  "subjects": {
+    "63735": "Vzporedni in porazdeljeni sistemi in algoritmi",
+    "63732": "Tehnologija programske opreme",
+    "63712": "Elektronsko in mobilno poslovanje",
+    "63768": "Planiranje in upravljanje informatike",
+    "63780": "Varnost sistemov",
+    "63781": "Razvoj in operacije - DevOps"
+  },
+  "lectures": [
+    {
+      "subject": "63735",
+      "name": "Vzporedni in porazdeljeni sistemi in algoritmi",
+      "type": "P",
+      "day": 0,
+      "start": 8,
+      "end": 11,
+      "room": "P03",
+      "teachers": [
+        "Uroš Lotrič"
+      ],
+      "groups": [
+        "3_BVS-RI_VPSA(63735)",
+        "63735_PAD"
+      ]
+    },
+    {
+      "subject": "63732",
+      "name": "Tehnologija programske opreme",
+      "type": "P",
+      "day": 1,
+      "start": 14,
+      "end": 17,
+      "room": "P22",
+      "teachers": [
+        "Igor Rožanc"
+      ],
+      "groups": [
+        "3_BVS-RI",
+        "63732_PAD"
+      ]
+    },
+    {
+      "subject": "63768",
+      "name": "Planiranje in upravljanje informatike",
+      "type": "P",
+      "day": 2,
+      "start": 8,
+      "end": 11,
+      "room": "P20",
+      "teachers": [
+        "Rok Rupnik"
+      ],
+      "groups": [
+        "3_BVS-RI_PUI(63768)",
+        "63768_PAD"
+      ]
+    },
+    {
+      "subject": "63712",
+      "name": "Elektronsko in mobilno poslovanje",
+      "type": "P",
+      "day": 3,
+      "start": 8,
+      "end": 11,
+      "room": "P01",
+      "teachers": [
+        "Rok Rupnik"
+      ],
+      "groups": [
+        "2_BVS-RI_EMP(63712)",
+        "3_BVS-RI_EMP(63712)",
+        "63712_PAD"
+      ]
+    },
+    {
+      "subject": "63780",
+      "name": "Varnost sistemov",
+      "type": "P",
+      "day": 3,
+      "start": 8,
+      "end": 11,
+      "room": "P21",
+      "teachers": [
+        "Matevž Pesek"
+      ],
+      "groups": [
+        "3_BVS-RI_(63780)",
+        "63780_PAD"
+      ]
+    },
+    {
+      "subject": "63781",
+      "name": "Razvoj in operacije - DevOps",
+      "type": "P",
+      "day": 4,
+      "start": 12,
+      "end": 15,
+      "room": "P20",
+      "teachers": [
+        "Matjaž Pančur"
+      ],
+      "groups": [
+        "3_BVS-RI_(63781)",
+        "63781_PAD"
+      ]
+    }
+  ],
+  "labs": [
+    {
+      "subject": "63735",
+      "name": "Vzporedni in porazdeljeni sistemi in algoritmi",
+      "type": "LV",
+      "day": 2,
+      "start": 10,
+      "end": 12,
+      "room": "PR12",
+      "teachers": [
+        "Davor Sluga"
+      ],
+      "groups": [
+        "3_BVS-RI_VPSA(63735)_LV_02",
+        "3_BVS-RI_VPSA(63735)_LV_04"
+      ],
+      "current": false
+    },
+    {
+      "subject": "63735",
+      "name": "Vzporedni in porazdeljeni sistemi in algoritmi",
+      "type": "LV",
+      "day": 2,
+      "start": 12,
+      "end": 14,
+      "room": "PR12",
+      "teachers": [
+        "Davor Sluga"
+      ],
+      "groups": [
+        "3_BVS-RI_VPSA(63735)_LV_01",
+        "3_BVS-RI_VPSA(63735)_LV_03"
+      ],
+      "current": true
+    },
+    {
+      "subject": "63732",
+      "name": "Tehnologija programske opreme",
+      "type": "LV",
+      "day": 2,
+      "start": 12,
+      "end": 14,
+      "room": "PR09",
+      "teachers": [
+        "Damjan Fujs"
+      ],
+      "groups": [
+        "3_BVS-RI_LV_01",
+        "3_BVS-RI_LV_11",
+        "63732_PAD_LV_02"
+      ],
+      "current": false
+    },
+    {
+      "subject": "63732",
+      "name": "Tehnologija programske opreme",
+      "type": "LV",
+      "day": 2,
+      "start": 14,
+      "end": 16,
+      "room": "PR09",
+      "teachers": [
+        "Damjan Fujs"
+      ],
+      "groups": [
+        "3_BVS-RI_LV_12",
+        "3_BVS-RI_LV_02",
+        "63732_PAD_LV_01",
+        "63732_PAD_LV_03"
+      ],
+      "current": false
+    },
+    {
+      "subject": "63732",
+      "name": "Tehnologija programske opreme",
+      "type": "LV",
+      "day": 2,
+      "start": 16,
+      "end": 18,
+      "room": "PR09",
+      "teachers": [
+        "Damjan Fujs"
+      ],
+      "groups": [
+        "3_BVS-RI_LV_03",
+        "3_BVS-RI_LV_08"
+      ],
+      "current": true
+    },
+    {
+      "subject": "63732",
+      "name": "Tehnologija programske opreme",
+      "type": "LV",
+      "day": 4,
+      "start": 8,
+      "end": 10,
+      "room": "PR05",
+      "teachers": [
+        "Damjan Fujs"
+      ],
+      "groups": [
+        "3_BVS-RI_LV_04",
+        "3_BVS-RI_LV_09"
+      ],
+      "current": false
+    },
+    {
+      "subject": "63732",
+      "name": "Tehnologija programske opreme",
+      "type": "LV",
+      "day": 4,
+      "start": 10,
+      "end": 12,
+      "room": "PR05",
+      "teachers": [
+        "Damjan Fujs"
+      ],
+      "groups": [
+        "3_BVS-RI_LV_10",
+        "3_BVS-RI_LV_05"
+      ],
+      "current": false
+    },
+    {
+      "subject": "63732",
+      "name": "Tehnologija programske opreme",
+      "type": "LV",
+      "day": 4,
+      "start": 12,
+      "end": 14,
+      "room": "PR05",
+      "teachers": [
+        "Damjan Fujs"
+      ],
+      "groups": [
+        "3_BVS-RI_LV_06"
+      ],
+      "current": false
+    },
+    {
+      "subject": "63732",
+      "name": "Tehnologija programske opreme",
+      "type": "LV",
+      "day": 4,
+      "start": 14,
+      "end": 16,
+      "room": "PR05",
+      "teachers": [
+        "Damjan Fujs"
+      ],
+      "groups": [
+        "3_BVS-RI_LV_07",
+        "63732_PAD_LV_04"
+      ],
+      "current": false
+    },
+    {
+      "subject": "63712",
+      "name": "Elektronsko in mobilno poslovanje",
+      "type": "LV",
+      "day": 2,
+      "start": 14,
+      "end": 16,
+      "room": "PR08",
+      "teachers": [
+        "Iztok Lapanja"
+      ],
+      "groups": [
+        "3_BVS-RI_EMP(63712)_LV_01",
+        "3_BVS-RI_EMP(63712)_LV_02"
+      ],
+      "current": true
+    },
+    {
+      "subject": "63768",
+      "name": "Planiranje in upravljanje informatike",
+      "type": "LV",
+      "day": 1,
+      "start": 8,
+      "end": 10,
+      "room": "PR08",
+      "teachers": [
+        "Damjan Fujs"
+      ],
+      "groups": [
+        "3_BVS-RI_PUI(63768)_LV_05",
+        "3_BVS-RI_PUI(63768)_LV_06",
+        "63768_PAD_LV_01",
+        "63768_PAD_LV_02"
+      ],
+      "current": false
+    },
+    {
+      "subject": "63768",
+      "name": "Planiranje in upravljanje informatike",
+      "type": "LV",
+      "day": 3,
+      "start": 10,
+      "end": 12,
+      "room": "PR09",
+      "teachers": [
+        "Damjan Fujs"
+      ],
+      "groups": [
+        "3_BVS-RI_PUI(63768)_LV_01",
+        "3_BVS-RI_PUI(63768)_LV_03"
+      ],
+      "current": false
+    },
+    {
+      "subject": "63768",
+      "name": "Planiranje in upravljanje informatike",
+      "type": "LV",
+      "day": 3,
+      "start": 12,
+      "end": 14,
+      "room": "PR09",
+      "teachers": [
+        "Damjan Fujs"
+      ],
+      "groups": [
+        "3_BVS-RI_PUI(63768)_LV_02",
+        "3_BVS-RI_PUI(63768)_LV_04"
+      ],
+      "current": true
+    },
+    {
+      "subject": "63780",
+      "name": "Varnost sistemov",
+      "type": "LV",
+      "day": 2,
+      "start": 10,
+      "end": 12,
+      "room": "PR09",
+      "teachers": [
+        "Andraž Juvan"
+      ],
+      "groups": [
+        "3_BVS-RI_(63780)_LV_03",
+        "3_BVS-RI_(63780)_LV_05",
+        "3_BVS-RI_(63780)_LV_06"
+      ],
+      "current": false
+    },
+    {
+      "subject": "63780",
+      "name": "Varnost sistemov",
+      "type": "LV",
+      "day": 4,
+      "start": 9,
+      "end": 11,
+      "room": "PR06",
+      "teachers": [
+        "Andraž Juvan"
+      ],
+      "groups": [
+        "3_BVS-RI_(63780)_LV_01",
+        "63780_PAD_LV_01"
+      ],
+      "current": false
+    },
+    {
+      "subject": "63780",
+      "name": "Varnost sistemov",
+      "type": "LV",
+      "day": 4,
+      "start": 11,
+      "end": 13,
+      "room": "PR06",
+      "teachers": [
+        "Andraž Juvan"
+      ],
+      "groups": [
+        "3_BVS-RI_(63780)_LV_02"
+      ],
+      "current": false
+    },
+    {
+      "subject": "63781",
+      "name": "Razvoj in operacije - DevOps",
+      "type": "LV",
+      "day": 0,
+      "start": 14,
+      "end": 16,
+      "room": "PR12",
+      "teachers": [
+        "Matjaž Pančur"
+      ],
+      "groups": [
+        "3_BVS-RI_(63781)_LV_03",
+        "3_BVS-RI_(63781)_LV_06"
+      ],
+      "current": false
+    },
+    {
+      "subject": "63781",
+      "name": "Razvoj in operacije - DevOps",
+      "type": "LV",
+      "day": 1,
+      "start": 12,
+      "end": 14,
+      "room": "PR09",
+      "teachers": [
+        "Matjaž Pančur"
+      ],
+      "groups": [
+        "3_BVS-RI_(63781)_LV_02",
+        "3_BVS-RI_(63781)_LV_04"
+      ],
+      "current": false
+    },
+    {
+      "subject": "63781",
+      "name": "Razvoj in operacije - DevOps",
+      "type": "LV",
+      "day": 2,
+      "start": 13,
+      "end": 15,
+      "room": "PR06",
+      "teachers": [
+        "Matjaž Pančur"
+      ],
+      "groups": [
+        "3_BVS-RI_(63781)_LV_01",
+        "3_BVS-RI_(63781)_LV_07"
+      ],
+      "current": false
+    }
+  ]
+}

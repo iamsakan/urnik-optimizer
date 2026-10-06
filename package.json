@@ -1,0 +1,10 @@
+{
+  "name": "urnik-optimizer",
+  "private": true,
+  "scripts": {
+    "test": "node test.js && node test-function.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0"
+  }
+}
