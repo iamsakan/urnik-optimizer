@@ -43,34 +43,60 @@ async function currentSemester() {
 }
 
 // ---------- parsing (same logic as tools/fetch_urnik.py) ----------
+const SLO_DAYS = { ponedeljek: 0, torek: 1, sreda: 2, "četrtek": 3, petek: 4 };
+
+// The hidden description of a block, one item per line:
+//   "torek 09:00 - 11:00", "PR11", "Spletno programiranje(63255)_LV", teachers..., groups...
+function hoverLines($, entry) {
+  const html = entry.find(".entry-hover").first().html() || "";
+  const text = cheerio.load(html.replace(/<br\s*\/?>/gi, "\n")).text();
+  return text.split("\n").map((line) => line.trim()).filter((line) => line !== "");
+}
+
 function parseBlocks(html) {
   const $ = cheerio.load(html);
   const blocks = [];
 
   $("div.grid-entry").each((_, element) => {
     const entry = $(element);
-    const day = DAYS[entry.attr("data-day")];
-    if (day === undefined) return;
+    const lines = hoverLines($, entry);
 
-    const start = parseInt(entry.attr("data-start"), 10); // "08:00" -> 8
-    const duration = parseInt(entry.attr("data-duration"), 10);
-
-    const subjectLink = entry.find("a.link-subject").first();
-    const match = (subjectLink.attr("href") || "").match(/subject=([^&]+)/);
-    if (!match) return; // blocks without a subject code are skipped
-    const code = match[1];
-
-    const type = entry.find(".entry-type").first().text().replace("|", "").trim();
-
-    // Full name, e.g. "Spletno programiranje(63255)_LV" -> "Spletno programiranje"
-    let name = subjectLink.text().trim();
-    const hoverLines = entry.find(".entry-hover").first().text().split("\n");
-    for (const line of hoverLines) {
-      if (line.includes("(" + code + ")")) {
-        name = line.split("(")[0].trim();
+    // Subject code and name from a line like "Spletno programiranje(63255)_LV".
+    // (On the live site the block's link goes to ?activity=..., not ?subject=...)
+    let code = null;
+    let name = null;
+    for (const line of lines) {
+      const match = line.match(/^(.*)\(([0-9A-Za-z]+)\)_\w+$/);
+      if (match) {
+        name = match[1].trim();
+        code = match[2];
         break;
       }
     }
+    const subjectLink = entry.find("a.link-subject").first();
+    if (!code) {
+      const match = (subjectLink.attr("href") || "").match(/subject=([^&]+)/);
+      if (match) {
+        code = match[1];
+        name = subjectLink.text().trim();
+      }
+    }
+    if (!code) return; // not a subject (e.g. a reserved room)
+
+    // Day and time from data-day / data-start / data-duration,
+    // with the first description line ("torek 09:00 - 11:00") as backup
+    let day = DAYS[entry.attr("data-day")];
+    let start = parseInt(entry.attr("data-start"), 10); // "08:00" -> 8
+    let end = start + parseInt(entry.attr("data-duration"), 10);
+    const time = (lines[0] || "").match(/^(\S+)\s+(\d{1,2}):\d{2}\s*-\s*(\d{1,2}):\d{2}/);
+    if (day === undefined && time) day = SLO_DAYS[time[1].toLowerCase()];
+    if ((isNaN(start) || isNaN(end)) && time) {
+      start = parseInt(time[2], 10);
+      end = parseInt(time[3], 10);
+    }
+    if (day === undefined || isNaN(start) || isNaN(end)) return;
+
+    const type = entry.find(".entry-type").first().text().replace("|", "").trim();
 
     blocks.push({
       subject: code,
@@ -78,7 +104,7 @@ function parseBlocks(html) {
       type: type,
       day: day,
       start: start,
-      end: start + duration,
+      end: end,
       room: entry.find("a.link-classroom").first().text().trim(),
       teachers: entry.find("a.link-teacher").map((_, a) => $(a).text().trim()).get(),
       groups: entry.find("a.link-group").map((_, a) => $(a).text().trim()).get(),
@@ -198,7 +224,8 @@ async function debugInfo(student, semesterParam) {
       heading: $(".title").first().text().trim(),
       gridEntries: $("div.grid-entry").length,
       parsedBlocks: parseBlocks(page.html).length,
-      start: page.html.slice(0, 600),
+      firstBlock: parseBlocks(page.html)[0] || null,
+      firstEntryHtml: $.html($("div.grid-entry").first()).slice(0, 2000),
     };
   } catch (err) {
     info.error = String(err);

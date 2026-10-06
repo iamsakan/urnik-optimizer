@@ -23,6 +23,7 @@ from bs4 import BeautifulSoup
 
 BASE_URL = "https://urnik.fri.uni-lj.si/timetable/{semester}/allocations"
 DAYS = {"MON": 0, "TUE": 1, "WED": 2, "THU": 3, "FRI": 4}
+SLO_DAYS = {"ponedeljek": 0, "torek": 1, "sreda": 2, "četrtek": 3, "petek": 4}
 HEADERS = {"User-Agent": "urnik-optimizer (student project)"}
 
 
@@ -44,32 +45,48 @@ def parse_blocks(html):
     blocks = []
 
     for entry in soup.select("div.grid-entry"):
-        day = DAYS.get(entry.get("data-day"))
-        if day is None:
-            continue
+        # The hidden description, one item per line:
+        # "torek 09:00 - 11:00", "PR11", "Spletno programiranje(63255)_LV", teachers..., groups...
+        hover = entry.select_one(".entry-hover")
+        lines = hover.get_text("\n", strip=True).split("\n") if hover else []
 
-        start = int(entry["data-start"].split(":")[0])
-        duration = int(entry["data-duration"])
-
-        # Subject code comes from the link: href="?subject=63735..."
+        # Subject code and name from a line like "Spletno programiranje(63255)_LV".
+        # (On the live site the block's link goes to ?activity=..., not ?subject=...)
+        code = None
+        name = None
+        for line in lines:
+            match = re.match(r"^(.*)\(([0-9A-Za-z]+)\)_\w+$", line.strip())
+            if match:
+                name = match.group(1).strip()
+                code = match.group(2)
+                break
         subject_link = entry.select_one("a.link-subject")
-        match = re.search(r"subject=([^&]+)", subject_link.get("href", ""))
-        if not match:
-            print("  skipping a block without a subject code:", subject_link.get_text(strip=True))
+        if code is None and subject_link:
+            match = re.search(r"subject=([^&]+)", subject_link.get("href", ""))
+            if match:
+                code = match.group(1)
+                name = subject_link.get_text(strip=True)
+        if code is None:
+            continue  # not a subject (e.g. a reserved room)
+
+        # Day and time from data attributes, with "torek 09:00 - 11:00" as backup
+        day = DAYS.get(entry.get("data-day"))
+        try:
+            start = int(entry["data-start"].split(":")[0])
+            end = start + int(entry["data-duration"])
+        except (KeyError, ValueError):
+            start = end = None
+        time_match = re.match(r"^(\S+)\s+(\d{1,2}):\d{2}\s*-\s*(\d{1,2}):\d{2}", lines[0]) if lines else None
+        if day is None and time_match:
+            day = SLO_DAYS.get(time_match.group(1).lower())
+        if start is None and time_match:
+            start = int(time_match.group(2))
+            end = int(time_match.group(3))
+        if day is None or start is None:
             continue
-        code = match.group(1)
 
         # Type is in <span class="entry-type">| LV</span>
         kind = entry.select_one(".entry-type").get_text(strip=True).replace("|", "").strip()
-
-        # Full name, e.g. "Spletno programiranje(63255)_LV" -> "Spletno programiranje"
-        name = subject_link.get_text(strip=True)
-        hover = entry.select_one(".entry-hover")
-        if hover:
-            for line in hover.get_text("\n", strip=True).split("\n"):
-                if "(" + code + ")" in line:
-                    name = line.split("(")[0].strip()
-                    break
 
         room = entry.select_one("a.link-classroom")
         blocks.append({
@@ -78,7 +95,7 @@ def parse_blocks(html):
             "type": kind,
             "day": day,
             "start": start,
-            "end": start + duration,
+            "end": end,
             "room": room.get_text(strip=True) if room else "",
             "teachers": [a.get_text(strip=True) for a in entry.select("a.link-teacher")],
             "groups": [a.get_text(strip=True) for a in entry.select("a.link-group")],

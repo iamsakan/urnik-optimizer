@@ -18,7 +18,7 @@ function entryHtml(b) {
   <div class="description">
     <div class="top-aligned">
       <div class="row">
-        <a class="link-subject" href="?subject=${b.subject}&student=1">SHORT_${b.type}</a>
+        <a class="link-subject" href="${b.type === "P" ? "?subject=" + b.subject : "?activity=8313"}&student=1">SHORT_${b.type}</a>
         <span class="entry-type">| ${b.type}</span>
         <div class="entry-hover">
           sreda ${pad(b.start)} - ${pad(b.end)}<br/>
