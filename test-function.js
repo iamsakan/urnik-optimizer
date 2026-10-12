@@ -122,12 +122,14 @@ function key(b) {
   // 3. Bad input
   res = await fn.handler({ queryStringParameters: { student: "123abc" } });
   assert.strictEqual(res.statusCode, 400);
-  console.log("ok   invalid ID ->", res.statusCode, JSON.parse(res.body).error);
+  assert.strictEqual(JSON.parse(res.body).code, "BAD_ID");
+  console.log("ok   invalid ID ->", res.statusCode, JSON.parse(res.body).code);
 
   // 4. Unknown student
   res = await fn.handler({ queryStringParameters: { student: "99999999" } });
   assert.strictEqual(res.statusCode, 404);
-  console.log("ok   unknown student ->", res.statusCode, JSON.parse(res.body).error);
+  assert.strictEqual(JSON.parse(res.body).code, "NOT_FOUND");
+  console.log("ok   unknown student ->", res.statusCode, JSON.parse(res.body).code);
 
   // 5. Study calendar page down: timetable still works, dates are just missing
   delete require.cache[require.resolve("./netlify/functions/timetable.js")];
@@ -143,7 +145,8 @@ function key(b) {
   serverDown = true;
   res = await fn.handler({ queryStringParameters: { student: expected.student } });
   assert.strictEqual(res.statusCode, 502);
-  console.log("ok   site down ->", res.statusCode, JSON.parse(res.body).error);
+  assert.strictEqual(JSON.parse(res.body).code, "FRI_DOWN");
+  console.log("ok   site down ->", res.statusCode, JSON.parse(res.body).code);
 })().catch((err) => {
   console.error("FAIL", err.message);
   process.exitCode = 1;

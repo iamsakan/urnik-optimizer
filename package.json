@@ -10,7 +10,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node test.js && node test-function.js && node test-calendar.js"
+    "test": "node test.js && node test-function.js && node test-calendar.js && node test-lang.js"
   },
   "dependencies": {
     "cheerio": "^1.2.0"

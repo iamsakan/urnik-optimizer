@@ -8,7 +8,7 @@
 
 Every semester, students at the Faculty of Computer and Information Science (FRI, University of Ljubljana) get a timetable where lab sessions clash with each other or with lectures, or are spread across the week with long gaps. Urnik Optimizer downloads your timetable, tries every possible combination of lab groups, and shows you the best weeks based on what you care about.
 
-**[Try it live →](https://urnik-optimizer.netlify.app)**
+**[Try it live →](https://urnik-optimizer.netlify.app/?lang=en)**
 
 ![Urnik Optimizer screenshot](docs/screenshot.png)
 

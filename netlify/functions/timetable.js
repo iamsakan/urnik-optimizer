@@ -278,7 +278,7 @@ exports.handler = async (event) => {
   const student = (params.student || "").trim();
 
   if (!/^\d{8}$/.test(student)) {
-    return reply(400, { error: "Vpisna številka mora imeti 8 števk." });
+    return reply(400, { code: "BAD_ID", error: "Vpisna številka mora imeti 8 števk." });
   }
 
   if (params.debug === "1") {
@@ -290,9 +290,9 @@ exports.handler = async (event) => {
     return reply(200, await buildTimetable(student, semester));
   } catch (err) {
     if (err.message === "NOT_FOUND") {
-      return reply(404, { error: "Za to vpisno številko ni urnika. Preveri številko." });
+      return reply(404, { code: "NOT_FOUND", error: "Za to vpisno številko ni urnika. Preveri številko." });
     }
-    return reply(502, { error: "Strani urnik.fri.uni-lj.si trenutno ni mogoče naložiti. Poskusi kasneje." });
+    return reply(502, { code: "FRI_DOWN", error: "Strani urnik.fri.uni-lj.si trenutno ni mogoče naložiti. Poskusi kasneje." });
   }
 };
 

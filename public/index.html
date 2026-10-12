@@ -152,6 +152,16 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .empty p { margin: 0 0 12px; max-width: 60ch; }
 .empty.error h2 { color: var(--warn); }
 
+/* Language switch */
+.header-side { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+@media (max-width: 560px) { .header-side { align-items: flex-start; } }
+.lang { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.lang button {
+  font: 600 12px var(--font-body); letter-spacing: 0.06em; color: var(--muted);
+  background: var(--surface); border: 0; padding: 4px 12px; cursor: pointer;
+}
+.lang button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
 /* Student ID form */
 .search { display: flex; flex-direction: column; gap: 4px; }
 .search label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
@@ -195,51 +205,57 @@ footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
   <header>
     <div>
       <h1>Urnik <span>Optimizer</span></h1>
-      <div class="meta" id="meta">Najboljša kombinacija vaj za tvoj FRI urnik</div>
+      <div class="meta" id="meta" data-t="tagline"></div>
     </div>
-    <form class="search" id="search">
-      <label for="studentId">Vpisna številka</label>
-      <div class="search-row">
-        <input id="studentId" inputmode="numeric" maxlength="8" placeholder="63240310" autocomplete="off" required>
-        <button type="submit" id="loadBtn">Naloži urnik</button>
+    <div class="header-side">
+      <div class="lang" role="group" aria-label="Jezik / Language">
+        <button type="button" data-lang="sl">SL</button>
+        <button type="button" data-lang="en">EN</button>
       </div>
-    </form>
+      <form class="search" id="search">
+        <label for="studentId" data-t="studentId"></label>
+        <div class="search-row">
+          <input id="studentId" inputmode="numeric" maxlength="8" placeholder="63240310" autocomplete="off" required>
+          <button type="submit" id="loadBtn" data-t="load"></button>
+        </div>
+      </form>
+    </div>
   </header>
   <div id="warnings"></div>
 
   <div class="layout">
     <aside class="panel">
       <section>
-        <h2>Kaj ti je pomembno</h2>
+        <h2 data-t="prefsTitle"></h2>
         <div class="row2">
           <div class="field">
-            <label for="earliest">Ne pred</label>
+            <label for="earliest" data-t="notBefore"></label>
             <select id="earliest"></select>
           </div>
           <div class="field">
-            <label for="latest">Ne po</label>
+            <label for="latest" data-t="notAfter"></label>
             <select id="latest"></select>
           </div>
         </div>
         <div class="field">
-          <label for="freeDayWeight">Prosti dnevi <output id="freeDayOut"></output></label>
+          <label for="freeDayWeight"><span data-t="freeDays"></span> <output id="freeDayOut"></output></label>
           <input type="range" id="freeDayWeight" min="0" max="60" step="5">
         </div>
         <div class="field">
-          <label for="gapWeight">Brez lukenj <output id="gapOut"></output></label>
+          <label for="gapWeight"><span data-t="noGaps"></span> <output id="gapOut"></output></label>
           <input type="range" id="gapWeight" min="0" max="60" step="5">
         </div>
         <div class="field">
-          <label for="timeWeight">Znotraj ur <output id="timeOut"></output></label>
+          <label for="timeWeight"><span data-t="withinHours"></span> <output id="timeOut"></output></label>
           <input type="range" id="timeWeight" min="0" max="60" step="5">
         </div>
         <label class="check" for="overlapLectures">
           <input type="checkbox" id="overlapLectures">
-          <span>Vaje lahko prekrivajo predavanja (če predavanja niso obvezna)</span>
+          <span data-t="overlapLectures"></span>
         </label>
       </section>
       <section>
-        <h2>Vaje</h2>
+        <h2 data-t="labsTitle"></h2>
         <div id="locks"></div>
       </section>
     </aside>
@@ -247,12 +263,10 @@ footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
     <main id="results"></main>
   </div>
 
-  <footer>
-    Podatki se naložijo z urnik.fri.uni-lj.si ob vsakem iskanju. Vpisnih številk ne shranjujemo.
-    Skupine za vaje dodeli fakulteta, zato je to orodje za načrtovanje: pove ti, katere skupine zaprositi.
-  </footer>
+  <footer data-t="footer"></footer>
 </div>
 
+<script src="lang.js"></script>
 <script src="solver.js"></script>
 <script src="calendar.js"></script>
 <script>
@@ -266,7 +280,6 @@ let result = null;
 
 const FIRST_HOUR = 7;
 const LAST_HOUR = 20;
-const SHORT_DAYS = ["Pon", "Tor", "Sre", "Čet", "Pet"];
 let subjectCodes = [];
 
 // ---------- small helpers ----------
@@ -281,7 +294,7 @@ function abbr(name) {
     .map((w) => w[0].toUpperCase()).join("");
 }
 function slotText(b) {
-  return `${SHORT_DAYS[b.day]} ${b.start}–${b.end} · ${b.room}`;
+  return `${t("days")[b.day]} ${b.start}–${b.end} · ${b.room}`;
 }
 function sameSlot(a, b) {
   return a && b && a.subject === b.subject && a.type === b.type && a.day === b.day && a.start === b.start;
@@ -331,9 +344,9 @@ function renderLocks() {
   box.innerHTML = "";
   for (const choice of result.choices) {
     const select = el("select", { id: "lock-" + choice.key.replace(" ", "-") });
-    select.append(new Option(`Katerikoli (${choice.options.length})`, ""));
+    select.append(new Option(t("any", { n: choice.options.length }), ""));
     choice.options.forEach((opt, i) => {
-      select.append(new Option(slotText(opt) + (opt.current ? " (zdaj)" : ""), i));
+      select.append(new Option(slotText(opt) + (opt.current ? t("now") : ""), i));
     });
     select.value = locks[choice.key] !== undefined ? locks[choice.key] : "";
     select.onchange = () => {
@@ -356,8 +369,14 @@ function renderWarnings() {
   box.innerHTML = "";
   for (const [a, b] of result.lectureClashes) {
     box.append(el("div", { className: "warning" }, [
-      `Predavanji se prekrivata: ${abbr(a.name)} in ${abbr(b.name)}, ${SHORT_DAYS[a.day]} ${Math.max(a.start, b.start)}–${Math.min(a.end, b.end)}`,
-      el("small", { textContent: "Tega ni mogoče rešiti z izbiro vaj. Izbrati boš moral, katero predavanje obiskuješ." }),
+      t("clash", {
+        a: abbr(a.name),
+        b: abbr(b.name),
+        day: t("days")[a.day],
+        from: Math.max(a.start, b.start),
+        to: Math.min(a.end, b.end),
+      }),
+      el("small", { textContent: t("clashNote") }),
     ]));
   }
 }
@@ -368,14 +387,14 @@ function renderResults() {
 
   if (result.count === 0) {
     main.append(el("div", { className: "empty" }, [
-      el("h2", { textContent: "Ni urnika brez prekrivanj" }),
-      el("p", { textContent: "S temi izbirami se vaje vedno prekrivajo. Sprosti kakšno zaklenjeno vajo ali dovoli, da vaje prekrivajo predavanja." }),
+      el("h2", { textContent: t("noScheduleTitle") }),
+      el("p", { textContent: t("noScheduleText") }),
     ]));
     shown = -1;
   }
 
   main.append(el("p", { className: "count" }, [
-    "Kombinacij brez prekrivanj: ", el("b", { textContent: result.count }),
+    t("combinations"), el("b", { textContent: result.count }),
   ]));
 
   if (shown >= result.top.length) shown = result.top.length ? 0 : -1;
@@ -389,7 +408,7 @@ function renderResults() {
     tab.onclick = () => { shown = index; renderResults(); };
     tabs.append(tab);
   };
-  addTab("Trenutni urnik", -1);
+  addTab(t("currentTab"), -1);
   result.top.forEach((r, i) => addTab("#" + (i + 1), i));
   main.append(tabs);
 
@@ -398,20 +417,20 @@ function renderResults() {
   // stats
   const totalChoices = result.choices.length;
   const stats = [
-    [schedule.score, "točke"],
-    [schedule.freeDays, "prosti dnevi"],
-    [schedule.gaps + " h", "luknje"],
-    [schedule.early + schedule.late + " h", "izven ur"],
-    [`${schedule.labs.length}/${totalChoices}`, "vaje"],
+    [schedule.score, t("statScore")],
+    [schedule.freeDays, t("statFreeDays")],
+    [schedule.gaps + " h", t("statGaps")],
+    [schedule.early + schedule.late + " h", t("statOutside")],
+    [`${schedule.labs.length}/${totalChoices}`, t("statLabs")],
   ];
   main.append(el("div", { className: "stats" },
     stats.map(([v, label]) => el("div", { className: "stat" }, [el("b", { textContent: v }), el("span", { textContent: label })]))));
 
   main.append(renderWeek(schedule));
   main.append(el("div", { className: "legend" }, [
-    el("span", {}, [el("i", { className: "sw lec" }), "predavanje"]),
-    el("span", {}, [el("i", { className: "sw" }), "vaje"]),
-    el("span", {}, [el("b", { className: "badge", textContent: "nova" }), "druga skupina kot zdaj"]),
+    el("span", {}, [el("i", { className: "sw lec" }), t("legendLecture")]),
+    el("span", {}, [el("i", { className: "sw" }), t("legendLab")]),
+    el("span", {}, [el("b", { className: "badge", textContent: t("badgeNew") }), t("legendNew")]),
   ]));
 
   main.append(renderExport(schedule));
@@ -420,35 +439,32 @@ function renderResults() {
 
 // ---------- calendar export ----------
 function renderExport(schedule) {
-  const label = shown === -1 ? "trenutni urnik" : "urnik #" + (shown + 1);
+  const title = shown === -1 ? t("exportCurrent") : t("exportOption", { n: shown + 1 });
   const from = el("input", { type: "date", id: "exportFrom", value: exportFrom });
   const to = el("input", { type: "date", id: "exportTo", value: exportTo });
   from.onchange = () => { exportFrom = from.value; };
   to.onchange = () => { exportTo = to.value; };
 
-  const button = el("button", { type: "button", textContent: "Prenesi .ics" });
-  const note = el("p", {
-    className: "note",
-    textContent: "Vsak termin se ponavlja vsak teden v izbranem obdobju. Državni prazniki so izpuščeni, počitnice pa ne, zato po potrebi prilagodi datuma.",
-  });
+  const button = el("button", { type: "button", textContent: t("download") });
+  const note = el("p", { className: "note", textContent: t("exportNote") });
   button.onclick = () => {
     if (!exportFrom || !exportTo || exportFrom > exportTo) {
-      note.textContent = "Izberi začetni in končni datum (začetek mora biti pred koncem).";
+      note.textContent = t("exportBadRange");
       return;
     }
-    downloadCalendar(schedule, label);
+    downloadCalendar(schedule);
   };
 
   return el("div", { className: "export" }, [
-    el("h2", { textContent: "Izvozi " + label + " v koledar" }),
-    el("div", { className: "field" }, [el("label", { htmlFor: "exportFrom", textContent: "Od" }), from]),
-    el("div", { className: "field" }, [el("label", { htmlFor: "exportTo", textContent: "Do" }), to]),
+    el("h2", { textContent: title }),
+    el("div", { className: "field" }, [el("label", { htmlFor: "exportFrom", textContent: t("from") }), from]),
+    el("div", { className: "field" }, [el("label", { htmlFor: "exportTo", textContent: t("to") }), to]),
     button,
     note,
   ]);
 }
 
-function downloadCalendar(schedule, label) {
+function downloadCalendar(schedule) {
   const blocks = data.lectures.concat(schedule.labs);
   const events = blocks.map((b) => ({
     uid: `${data.student}-${b.subject}-${b.type}-${b.day}-${b.start}@urnik-optimizer`,
@@ -464,7 +480,7 @@ function downloadCalendar(schedule, label) {
   const file = new Blob([text], { type: "text/calendar;charset=utf-8" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(file);
-  link.download = `urnik-${data.student}-${label.replace(/\W+/g, "")}.ics`;
+  link.download = `urnik-${data.student}-${shown === -1 ? "0" : shown + 1}.ics`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
@@ -475,7 +491,7 @@ function renderWeek(schedule) {
   const height = (LAST_HOUR - FIRST_HOUR) * 46;
 
   week.append(el("div"));
-  SHORT_DAYS.forEach((d) => week.append(el("div", { className: "day-head", textContent: d })));
+  t("days").forEach((d) => week.append(el("div", { className: "day-head", textContent: d })));
 
   const hours = el("div", { className: "hours" });
   hours.style.height = height + "px";
@@ -519,7 +535,7 @@ function renderWeek(schedule) {
         ? `color-mix(in srgb, ${color(b.subject)} 45%, var(--surface))`
         : color(b.subject);
       const head = el("div", { className: "abbr" }, [`${abbr(b.name)} ${b.type}`]);
-      if (isNew) head.append(el("span", { className: "badge", textContent: "nova" }));
+      if (isNew) head.append(el("span", { className: "badge", textContent: t("badgeNew") }));
       block.append(head,
         el("div", { className: "time", textContent: `${b.start}–${b.end}` }),
         el("div", { textContent: b.room }));
@@ -533,23 +549,23 @@ function renderWeek(schedule) {
 }
 
 function renderChanges(schedule) {
-  const box = el("div", { className: "changes" }, [el("h2", { textContent: "Kaj moraš urediti" })]);
+  const box = el("div", { className: "changes" }, [el("h2", { textContent: t("changesTitle") })]);
   const list = el("ul");
   for (const choice of result.choices) {
     const picked = schedule.labs.find((l) => l.subject === choice.subject && l.type === choice.type);
     const now = data.labs.find((l) => l.current && l.subject === choice.subject && l.type === choice.type);
     let status, text;
     if (sameSlot(picked, now)) {
-      status = ["keep", "Ostane"];
+      status = ["keep", t("keep")];
       text = `${abbr(choice.name)} ${choice.type}: ${slotText(picked)}`;
     } else if (now) {
-      status = ["swap", "Zamenjaj"];
+      status = ["swap", t("swap")];
       text = `${abbr(choice.name)} ${choice.type}: ${slotText(now)} → ${slotText(picked)}`;
     } else {
-      status = ["add", "Vpiši se"];
+      status = ["add", t("join")];
       text = `${abbr(choice.name)} ${choice.type}: ${slotText(picked)}`;
     }
-    const codes = status[0] === "keep" ? "" : "Skupine: " + myGroups(picked);
+    const codes = status[0] === "keep" ? "" : t("groups") + myGroups(picked);
     list.append(el("li", {}, [
       el("span", { className: "status " + status[0], textContent: status[1] }),
       el("div", {}, [el("div", { textContent: text }), el("div", { className: "codes", textContent: codes })]),
@@ -568,23 +584,41 @@ function run() {
 }
 
 // ---------- loading a student's timetable ----------
-function showMessage(title, text, isError) {
+let message = null; // the message shown instead of results, kept as text keys so it can be re-translated
+
+function showMessage(titleKey, textKey, isError) {
+  message = { titleKey, textKey, isError };
   const main = document.getElementById("results");
   main.innerHTML = "";
   const box = el("div", { className: "empty" + (isError ? " error" : "") }, [
-    el("h2", { textContent: title }),
-    el("p", { textContent: text }),
+    el("h2", { textContent: t(titleKey) }),
+    el("p", { textContent: t(textKey) }),
   ]);
   if (!data) {
-    const example = el("button", { type: "button", className: "link", textContent: "Poglej primer urnika" });
+    const example = el("button", { type: "button", className: "link", textContent: t("example") });
     example.onclick = () => loadFrom("timetable.json");
     box.append(example);
   }
   main.append(box);
 }
 
+function renderMeta() {
+  const meta = document.getElementById("meta");
+  if (!data) {
+    meta.textContent = t("tagline");
+    return;
+  }
+  meta.textContent = t("meta", {
+    student: data.student,
+    program: data.program,
+    semester: data.semester,
+    time: data.fetched_at.replace("T", " "),
+  });
+}
+
 function useTimetable(json) {
   data = json;
+  message = null;
   subjectCodes = Object.keys(data.subjects);
   locks = {};
   shown = 0;
@@ -592,33 +626,44 @@ function useTimetable(json) {
   const semester = data.semester_dates || SEMESTERS[data.semester];
   exportFrom = semester ? semester.from : "";
   exportTo = semester ? semester.to : "";
-  document.getElementById("meta").textContent =
-    `Študent ${data.student} · ${data.program} · ${data.semester} · podatki: ${data.fetched_at.replace("T", " ")}`;
+  renderMeta();
   run();
 }
 
 async function loadFrom(url) {
   const button = document.getElementById("loadBtn");
   button.disabled = true;
-  showMessage("Nalagam urnik …", "Prenašam tvoj urnik in vse termine vaj s strani urnik.fri.uni-lj.si.");
+  showMessage("loadingTitle", "loadingText");
   try {
     const response = await fetch(url);
     const json = await response.json();
-    if (!response.ok) throw new Error(json.error || "Napaka pri nalaganju.");
+    if (!response.ok) throw new Error(json.code || "OTHER");
     useTimetable(json);
   } catch (err) {
     data = null;
     document.getElementById("warnings").innerHTML = "";
     document.getElementById("locks").innerHTML = "";
-    showMessage("Urnika ni bilo mogoče naložiti", err.message, true);
+    renderMeta();
+    // the server sends a code like "NOT_FOUND"; anything else (no internet, ...) is "OTHER"
+    const known = TEXT.sl["err_" + err.message] !== undefined;
+    showMessage("loadFailedTitle", known ? "err_" + err.message : "err_OTHER", true);
   } finally {
     button.disabled = false;
   }
 }
 
+// Keep ?student=... and ?lang=... in the address bar, so the link can be shared
+function updateLink(student) {
+  const params = new URLSearchParams(location.search);
+  if (student) params.set("student", student);
+  if (lang === "sl") params.delete("lang");
+  else params.set("lang", lang);
+  const query = params.toString();
+  history.replaceState(null, "", query ? "?" + query : location.pathname);
+}
+
 function loadStudent(id) {
-  // shareable link: ...?student=63240310
-  history.replaceState(null, "", "?student=" + id);
+  updateLink(id);
   try { localStorage.setItem("lastStudent", id); } catch (e) { /* storage blocked, that's fine */ }
   loadFrom("/.netlify/functions/timetable?student=" + encodeURIComponent(id));
 }
@@ -627,12 +672,28 @@ document.getElementById("search").onsubmit = (event) => {
   event.preventDefault();
   const id = document.getElementById("studentId").value.trim();
   if (!/^\d{8}$/.test(id)) {
-    showMessage("Preveri vpisno številko", "Vpisna številka ima 8 števk, na primer 63240310.", true);
+    showMessage("checkIdTitle", "checkIdText", true);
     return;
   }
   loadStudent(id);
 };
 
+// ---------- language switch ----------
+function setLanguage(newLang) {
+  lang = newLang;
+  try { localStorage.setItem("lang", lang); } catch (e) { /* ignore */ }
+  updateLink();
+  applyStaticText();
+  renderMeta();
+  if (message) showMessage(message.titleKey, message.textKey, message.isError);
+  else run();
+}
+
+document.querySelectorAll(".lang button").forEach((button) => {
+  button.onclick = () => setLanguage(button.dataset.lang);
+});
+
+applyStaticText();
 setupControls();
 
 // Start: ID from the link, otherwise the last one used, otherwise a short intro
@@ -645,10 +706,7 @@ if (fromLink && /^\d{8}$/.test(fromLink)) {
   loadStudent(fromLink);
 } else {
   if (remembered) document.getElementById("studentId").value = remembered;
-  showMessage(
-    "Vpiši vpisno številko",
-    "Orodje prenese tvoj urnik, poišče vse kombinacije vaj brez prekrivanj in jih razvrsti po tvojih željah: prosti dnevi, brez lukenj, ne prezgodaj in ne prepozno."
-  );
+  showMessage("introTitle", "introText");
 }
 </script>
 </body>
