@@ -49,8 +49,23 @@ const otherProgramLab = {
   room: "PR05", teachers: ["Damjan Fujs"], groups: ["2_BUN-ML_LV_01"],
 };
 
+// FRI study calendar page, written the way real pages are (entities, &nbsp;, table cells)
+const studyCalendar = `<html><head><meta name="description" content="Organizirano pedagoško delo 1. 1. 2000"></head><body>
+<h2>ŠTUDIJSKO LETO 2026/27</h2>
+<h3>Zimski semester</h3>
+<table>
+  <tr><td>Organizirano pedago&scaron;ko delo</td><td>četrtek, 1.&nbsp;10.&nbsp;2026</td><td>petek, 15. 1. 2027</td></tr>
+  <tr><td>Zimsko izpitno obdobje</td><td>torek, 19. 1. 2027</td><td>petek, 12. 2. 2027</td></tr>
+</table>
+<h3>Poletni semester</h3>
+<table>
+  <tr><td>Organizirano pedagoško delo</td><td>ponedeljek, 15. 2. 2027</td><td>sreda, 2. 6. 2027</td></tr>
+  <tr><td>Spomladansko izpitno obdobje</td><td>petek, 4. 6. 2027</td><td>petek, 2. 7. 2027</td></tr>
+</table></body></html>`;
+
 let requests = [];
 let serverDown = false;
+let calendarDown = false;
 
 global.fetch = async (url) => {
   requests.push(url);
@@ -60,7 +75,10 @@ global.fetch = async (url) => {
   let finalUrl = url;
   const u = new URL(url);
 
-  if (u.pathname === "/") {
+  if (u.hostname === "www.fri.uni-lj.si") {
+    if (calendarDown) return { ok: false, status: 500, url, text: async () => "" };
+    html = studyCalendar;
+  } else if (u.pathname === "/") {
     finalUrl = `https://urnik.fri.uni-lj.si/timetable/${SEMESTER}`; // redirect to current semester
   } else if (u.searchParams.get("student") === expected.student) {
     const current = expected.labs.filter((l) => l.current).map(({ current, ...rest }) => rest);
@@ -89,6 +107,12 @@ function key(b) {
   assert.deepStrictEqual(data.labs.map(key).sort(), expected.labs.map(key).sort(), "labs match (other program filtered out)");
   console.log(`ok   normal request: ${data.lectures.length} lectures, ${data.labs.length} labs, ${requests.length} downloads`);
 
+  // Semester dates from the study calendar
+  assert.deepStrictEqual(data.semester_dates, { from: "2026-10-01", to: "2027-01-15" });
+  assert.deepStrictEqual(await fn.lectureDates("fri-2026_2027-poletni"), { from: "2027-02-15", to: "2027-06-02" });
+  assert.strictEqual(await fn.lectureDates("fri-2030_2031-zimski"), null);
+  console.log("ok   semester dates: winter 2026-10-01..2027-01-15, summer 2027-02-15..2027-06-02, unknown year -> null");
+
   // 2. Second request: subject pages come from the cache
   requests = [];
   await fn.handler({ queryStringParameters: { student: expected.student } });
@@ -105,7 +129,17 @@ function key(b) {
   assert.strictEqual(res.statusCode, 404);
   console.log("ok   unknown student ->", res.statusCode, JSON.parse(res.body).error);
 
-  // 5. FRI site down
+  // 5. Study calendar page down: timetable still works, dates are just missing
+  delete require.cache[require.resolve("./netlify/functions/timetable.js")];
+  const freshFn = require("./netlify/functions/timetable.js"); // empty cache
+  calendarDown = true;
+  res = await freshFn.handler({ queryStringParameters: { student: expected.student } });
+  assert.strictEqual(res.statusCode, 200);
+  assert.strictEqual(JSON.parse(res.body).semester_dates, null);
+  calendarDown = false;
+  console.log("ok   study calendar down -> timetable still loads, semester_dates = null");
+
+  // 6. FRI site down
   serverDown = true;
   res = await fn.handler({ queryStringParameters: { student: expected.student } });
   assert.strictEqual(res.statusCode, 502);

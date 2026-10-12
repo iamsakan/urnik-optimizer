@@ -42,6 +42,36 @@ async function currentSemester() {
   return match[1];
 }
 
+// ---------- semester dates ----------
+// Read from the FRI study calendar, which has rows like
+//   "Organizirano pedagoško delo | četrtek, 1. 10. 2026 | petek, 15. 1. 2027"
+// once for the winter semester and once for the summer semester.
+const CALENDAR_URL = "https://www.fri.uni-lj.si/sl/studijski-koledar";
+
+function isoDate(year, month, day) {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+async function lectureDates(semester) {
+  // "fri-2026_2027-zimski": winter starts in 2026, summer ("poletni") in 2027
+  const years = semester.match(/(\d{4})_(\d{4})/);
+  if (!years) return null;
+  const isWinter = semester.includes("zim");
+  const startYear = Number(isWinter ? years[1] : years[2]);
+
+  const { html } = await downloadCached(CALENDAR_URL, SEMESTER_TTL);
+  const text = cheerio.load(html)("body").text().replace(/\s+/g, " ");
+
+  const date = "(\\d{1,2})\\. ?(\\d{1,2})\\. ?(\\d{4})"; // "1. 10. 2026"
+  const row = new RegExp("Organizirano pedagoško delo\\D*?" + date + "\\D*?" + date, "gi");
+  for (const m of text.matchAll(row)) {
+    if (Number(m[3]) === startYear) {
+      return { from: isoDate(m[3], m[2], m[1]), to: isoDate(m[6], m[5], m[4]) };
+    }
+  }
+  return null;
+}
+
 // ---------- parsing (same logic as tools/fetch_urnik.py) ----------
 const SLO_DAYS = { ponedeljek: 0, torek: 1, sreda: 2, "četrtek": 3, petek: 4 };
 
@@ -172,11 +202,21 @@ async function buildTimetable(student, semester) {
     }
   });
 
+  // Lecture period for the calendar export. If the study calendar can't be read,
+  // the page falls back to the table in calendar.js.
+  let semesterDates = null;
+  try {
+    semesterDates = await lectureDates(semester);
+  } catch (err) {
+    semesterDates = null;
+  }
+
   return {
     student: student,
     semester: semester,
+    semester_dates: semesterDates,
     program: program,
-    fetched_at: new Date().toLocaleString("sv-SE", { timeZone: "Europe/Ljubljana" }).slice(0, 16),
+    fetched_at: new Date().toISOString().slice(0, 16),
     subjects: subjects,
     lectures: lectures,
     labs: labs,
@@ -259,3 +299,4 @@ exports.handler = async (event) => {
 // exported for tests
 exports.parseBlocks = parseBlocks;
 exports.detectProgram = detectProgram;
+exports.lectureDates = lectureDates;

@@ -170,6 +170,24 @@ button.link {
   text-decoration: underline; cursor: pointer;
 }
 footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
+
+/* Calendar export */
+.export {
+  display: flex; flex-wrap: wrap; align-items: end; gap: 10px 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px;
+}
+.export h2 { font: 600 16px var(--font-display); margin: 0; flex-basis: 100%; }
+.export .field { margin: 0; }
+.export label { font-size: 13px; color: var(--muted); }
+.export input[type="date"] {
+  font: 14px var(--font-mono); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px;
+}
+.export button {
+  font: 600 14px var(--font-body); background: var(--accent); color: var(--accent-ink);
+  border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer;
+}
+.export .note { font-size: 13px; color: var(--muted); flex-basis: 100%; margin: 0; }
 </style>
 </head>
 <body>
@@ -236,8 +254,11 @@ footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
 </div>
 
 <script src="solver.js"></script>
+<script src="calendar.js"></script>
 <script>
 let data = null;           // the loaded timetable (same format as timetable.json)
+let exportFrom = "";       // calendar export period, "YYYY-MM-DD"
+let exportTo = "";
 const prefs = Object.assign({}, DEFAULT_PREFS);
 let locks = {};            // { "63735 LV": optionIndex }
 let shown = 0;             // which tab: -1 = current schedule, 0..4 = best results
@@ -393,7 +414,59 @@ function renderResults() {
     el("span", {}, [el("b", { className: "badge", textContent: "nova" }), "druga skupina kot zdaj"]),
   ]));
 
+  main.append(renderExport(schedule));
   if (shown !== -1) main.append(renderChanges(schedule));
+}
+
+// ---------- calendar export ----------
+function renderExport(schedule) {
+  const label = shown === -1 ? "trenutni urnik" : "urnik #" + (shown + 1);
+  const from = el("input", { type: "date", id: "exportFrom", value: exportFrom });
+  const to = el("input", { type: "date", id: "exportTo", value: exportTo });
+  from.onchange = () => { exportFrom = from.value; };
+  to.onchange = () => { exportTo = to.value; };
+
+  const button = el("button", { type: "button", textContent: "Prenesi .ics" });
+  const note = el("p", {
+    className: "note",
+    textContent: "Vsak termin se ponavlja vsak teden v izbranem obdobju. Državni prazniki so izpuščeni, počitnice pa ne, zato po potrebi prilagodi datuma.",
+  });
+  button.onclick = () => {
+    if (!exportFrom || !exportTo || exportFrom > exportTo) {
+      note.textContent = "Izberi začetni in končni datum (začetek mora biti pred koncem).";
+      return;
+    }
+    downloadCalendar(schedule, label);
+  };
+
+  return el("div", { className: "export" }, [
+    el("h2", { textContent: "Izvozi " + label + " v koledar" }),
+    el("div", { className: "field" }, [el("label", { htmlFor: "exportFrom", textContent: "Od" }), from]),
+    el("div", { className: "field" }, [el("label", { htmlFor: "exportTo", textContent: "Do" }), to]),
+    button,
+    note,
+  ]);
+}
+
+function downloadCalendar(schedule, label) {
+  const blocks = data.lectures.concat(schedule.labs);
+  const events = blocks.map((b) => ({
+    uid: `${data.student}-${b.subject}-${b.type}-${b.day}-${b.start}@urnik-optimizer`,
+    summary: `${abbr(b.name)} ${b.type}`,
+    description: `${b.name} (${b.type})\n${b.teachers.join(", ")}\n${myGroups(b)}`,
+    location: b.room + ", FRI",
+    day: b.day,
+    start: b.start,
+    end: b.end,
+  }));
+
+  const text = buildIcs(events, exportFrom, exportTo);
+  const file = new Blob([text], { type: "text/calendar;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(file);
+  link.download = `urnik-${data.student}-${label.replace(/\W+/g, "")}.ics`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
 function renderWeek(schedule) {
@@ -515,6 +588,10 @@ function useTimetable(json) {
   subjectCodes = Object.keys(data.subjects);
   locks = {};
   shown = 0;
+  // lecture period: read automatically by the server, otherwise from the table in calendar.js
+  const semester = data.semester_dates || SEMESTERS[data.semester];
+  exportFrom = semester ? semester.from : "";
+  exportTo = semester ? semester.to : "";
   document.getElementById("meta").textContent =
     `Študent ${data.student} · ${data.program} · ${data.semester} · podatki: ${data.fetched_at.replace("T", " ")}`;
   run();
